@@ -45,6 +45,10 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			nextDate = nextDate.AddDate(0, 0, days)
 		}
 		result = nextDate.String()
+
+		//Для недель
+	case "w":
+		//TODO Описать логику поиска ближайшего дня недели.
 	}
 
 	return result, nil
@@ -86,6 +90,64 @@ func dayParser(repeat string) (int, error) {
 	days = dayCount
 
 	return days, nil
+}
+
+// - проверяет корректность данных для назначения повторений на день недели
+func weekParser(repeat string) ([]time.Weekday, error) {
+
+	weekMap := map[int]time.Weekday{1: time.Monday, 2: time.Tuesday, 3: time.Wednesday, 4: time.Thursday, 5: time.Friday, 6: time.Saturday, 7: time.Sunday}
+	var weekDay []time.Weekday
+	var dayNumber int
+	var err error
+
+	weekDays := strings.Split(repeat, " ")
+
+	//Проверка на наличие дня недели
+	if len(weekDays) < 2 {
+		err4 := errors.New("не верный день недели")
+		fmt.Println(err4)
+		return weekDay, err4
+	}
+
+	//Проверка на наличие одного дня недели
+	if len(weekDays[1]) == 1 {
+		dayNumber, err = strconv.Atoi(weekDays[1])
+
+		if err != nil {
+			fmt.Println("не верное значение дня недели", err)
+			return weekDay, err
+		}
+
+		if 0 >= dayNumber || dayNumber >= 8 {
+			err5 := errors.New("не верный день недели")
+			fmt.Println(err5)
+			return weekDay, err5
+		}
+
+		weekDay = append(weekDay, weekMap[dayNumber])
+
+		//Если дней не один
+	} else {
+
+		for _, value := range strings.Split(weekDays[1], ",") {
+			day, err := strconv.Atoi(value)
+
+			if err != nil {
+				fmt.Println("не верное значение дня недели", err)
+				return weekDay, err
+			}
+
+			if 0 >= day || day >= 8 {
+				err6 := errors.New("не верный день недели")
+				fmt.Println(err6)
+				return weekDay, err6
+			}
+
+			weekDay = append(weekDay, weekMap[day])
+		}
+	}
+
+	return weekDay, nil
 }
 
 /*
