@@ -10,156 +10,173 @@ import (
 
 func NextDate(now time.Time, date string, repeat string) (string, error) {
 
-	var result string
+	fmt.Println("Тут")
+
+	var nextDateString string
 	var nextDate time.Time
 
-	//Парсит время для старта повторений
+	//Проверка даты начала отсчёта
+	_, err := DateValidation(date)
+	if err != nil {
+		fmt.Println("Неверное значение даты начала отсчета для повторений. ", err)
+		return nextDateString, err
+	}
+
+	//Проверка корректности интервалов для повторений
+	err = RepeatValidation(repeat)
+	if err != nil {
+		fmt.Println("Неверное значение для повторений. ", err)
+		return nextDateString, err
+	}
+
+	//Если строка для повторений пуста
+	if repeat == "" {
+		return nextDateString, nil
+	}
+
+	switch string(repeat[0]) {
+	case "y":
+		//fmt.Println("Тут ", date)
+		nextDate, err = yearDateToRepeate(now, date, repeat)
+		if err != nil {
+			fmt.Println("Год для повторений не корректен ", err)
+			return nextDateString, err
+		}
+	case "d":
+		//fmt.Println("Тут ", date)
+		nextDate, err = dayDateToRepeate(now, date, repeat)
+		if err != nil {
+			fmt.Println("День для повторений не корректен ", err)
+			return nextDateString, err
+		}
+	case "w":
+		nextDate, err = weekDateToRepeate(now, date, repeat)
+		if err != nil {
+			fmt.Println("Неделя для повторений не корректна ", err)
+			return nextDateString, err
+		}
+
+		/*
+			case "m":
+				nextDatString, err := monthDateToRepeate(now, date, repeat)
+				if err != nil {
+					fmt.Println("Месяц для повторений не корректен ", err)
+					return nextDatString, err
+				}
+		*/
+	default:
+		err0 := errors.New("значение для повторений не корректно")
+		return nextDateString, err0
+	}
+
+	//fmt.Println("Новая дата", nextDateString) //TODO Убрать
+	nextDateString = fmt.Sprint(nextDate.Format("20060102"))
+	return nextDateString, nil
+}
+
+// yearDateToRepeate - возвращает следующую дату для ежегодного повторения
+func yearDateToRepeate(now time.Time, date string, repeat string) (time.Time, error) {
+
+	var nextDate time.Time
+
+	//На случай, если формат ежегодных повторений будет меняться
+	//и в функцию будет передааься не только одна буква
+	if len(repeat) != 1 {
+		err0 := errors.New("такие данные пока не обрабатываются")
+		return nextDate, err0
+	}
+
 	dateStart, err := time.Parse("20060102", date)
 	if err != nil {
 		fmt.Println("Не верные данные date. ", err)
-		return result, err
+		return nextDate, err
 	}
 
-	// Обрабатывает данные для повторений
-	switch string(repeat[0]) {
-	//Для года
-	case "y":
-		if yearParser(repeat) == nil {
-			nextDate = dateStart.AddDate(1, 0, 0)
-			for now.After(nextDate) {
-				nextDate = nextDate.AddDate(1, 0, 0)
-			}
-			result = nextDate.String()
-		} else {
-			return result, yearParser(repeat)
-		}
-	//Для дней
-	case "d":
-		days, err := dayParser(repeat)
-		if err != nil {
-			return result, err
-		}
-
-		nextDate = dateStart.AddDate(0, 0, days)
-		for now.After(nextDate) {
-			nextDate = nextDate.AddDate(0, 0, days)
-		}
-		result = nextDate.String()
-
-		//Для недель
-	case "w":
-		//TODO Описать логику поиска ближайшего дня недели.
+	nextDate = dateStart.AddDate(1, 0, 0)
+	for now.After(nextDate) {
+		nextDate = nextDate.AddDate(1, 0, 0)
 	}
 
-	return result, nil
+	return nextDate, nil
 }
 
-// yearParser - проверяет корректность данных для повторения каждый год
-func yearParser(repeat string) error {
-	if repeat == "y" {
-		return nil
-	}
-	err1 := errors.New("значение для повторений не корректно")
-	return err1
-}
+// dayDateToRepeate - возвращает следующую дату для повторения через несколько дней
+func dayDateToRepeate(now time.Time, date string, repeat string) (time.Time, error) {
 
-// dayParser - проверяет корректность данных для повторения каждые несколько дней
-func dayParser(repeat string) (int, error) {
-	var days int
+	var nextDate time.Time
+
+	dateStart, err := time.Parse("20060102", date)
+	if err != nil {
+		fmt.Println("Не верные данные date. ", err)
+		return nextDate, err
+	}
 
 	dayData := strings.Split(repeat, " ")
-
-	if len(dayData) < 2 {
-		err2 := errors.New("не указан интервал в дняхй")
-		fmt.Println(err2)
-		return days, err2
-	}
 
 	dayCount, err := strconv.Atoi(dayData[1])
 	if err != nil {
 		fmt.Println("Неверный формат дней для повторений. ", err)
-		return days, err
+		return nextDate, err
 	}
 
-	if dayCount > 400 {
-		err3 := errors.New("превышен максимально допустимый интервал")
-		fmt.Println(err3)
-		return days, err3
+	nextDate = dateStart.AddDate(0, 0, dayCount)
+	for now.After(nextDate) {
+		nextDate = nextDate.AddDate(0, 0, dayCount)
 	}
 
-	days = dayCount
-
-	return days, nil
+	return nextDate, nil
 }
 
-// - проверяет корректность данных для назначения повторений на день недели
-func weekParser(repeat string) ([]time.Weekday, error) {
+// weekDateToRepeate - возвращает следующую дату для еженедельного повторения
+func weekDateToRepeate(now time.Time, date string, repeat string) (time.Time, error) {
 
-	weekMap := map[int]time.Weekday{1: time.Monday, 2: time.Tuesday, 3: time.Wednesday, 4: time.Thursday, 5: time.Friday, 6: time.Saturday, 7: time.Sunday}
-	var weekDay []time.Weekday
-	var dayNumber int
-	var err error
+	week := map[time.Weekday]int{time.Monday: 1, time.Tuesday: 2, time.Wednesday: 3, time.Thursday: 4, time.Friday: 5, time.Saturday: 6, time.Sunday: 7}
+
+	var nextDate time.Time
+
+	dateStart, err := time.Parse("20060102", date)
+	if err != nil {
+		fmt.Println("Не верные данные date. ", err)
+		return nextDate, err
+	}
 
 	weekDays := strings.Split(repeat, " ")
 
-	//Проверка на наличие дня недели
-	if len(weekDays) < 2 {
-		err4 := errors.New("не верный день недели")
-		fmt.Println(err4)
-		return weekDay, err4
-	}
-
-	//Проверка на наличие одного дня недели
-	if len(weekDays[1]) == 1 {
-		dayNumber, err = strconv.Atoi(weekDays[1])
-
+	var weekDaysInt []int
+	for _, value := range weekDays {
+		dayNumber, err := strconv.Atoi(value)
 		if err != nil {
-			fmt.Println("не верное значение дня недели", err)
-			return weekDay, err
+			fmt.Println("Не могу конвертировать в цифру значение недельного повторения ", err)
+			return nextDate, err
 		}
+		weekDaysInt = append(weekDaysInt, dayNumber)
+	}
 
-		if 0 >= dayNumber || dayNumber >= 8 {
-			err5 := errors.New("не верный день недели")
-			fmt.Println(err5)
-			return weekDay, err5
-		}
+	//Прибавляем с шагом в неделю пока не найдём.
+	for i := 0; i < 56; i++ {
+		dateStart = dateStart.AddDate(0, 0, 1*i)
+		for _, value := range weekDaysInt {
 
-		weekDay = append(weekDay, weekMap[dayNumber])
+			d := week[dateStart.Weekday()]
+			w := value
 
-		//Если дней не один
-	} else {
+			delta := (7 - d + w) % 7
+			nextDate = dateStart.AddDate(0, 0, delta)
 
-		for _, value := range strings.Split(weekDays[1], ",") {
-			day, err := strconv.Atoi(value)
-
-			if err != nil {
-				fmt.Println("не верное значение дня недели", err)
-				return weekDay, err
+			if nextDate.After(now) {
+				break
 			}
-
-			if 0 >= day || day >= 8 {
-				err6 := errors.New("не верный день недели")
-				fmt.Println(err6)
-				return weekDay, err6
-			}
-
-			weekDay = append(weekDay, weekMap[day])
 		}
 	}
 
-	return weekDay, nil
-}
-
-/*
-
-	nextDate = dateStart
-	for now > nextDate {
-		nextDate = dateStart.AddDate(1, 0, 0)
+	//На случай если что-то пошло не так
+	if !nextDate.After(now) {
+		err0 := errors.New("не получилось найти следующую дату недельного повторения")
+		fmt.Println(err0)
+		return nextDate, err0
 	}
 
-	func repeatParser(now time.Time, repeat string) (time.Duration, error) {
-
-	var err error
-
+	return nextDate, nil
 }
-*/
+
+//TODO Дописать проверку по месяцам

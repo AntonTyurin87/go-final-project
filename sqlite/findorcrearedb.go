@@ -8,7 +8,9 @@ import (
 )
 
 // FindOrCreateDB - ищет файл базы данных в папке запуска приложения.
-func FindOrCreateDB(todoDB string) error {
+func FindOrCreateDB(todoDB string) (string, error) {
+
+	var dbURL string
 
 	//Если переменная окружения не задани или пуста присвоем адрес текущего каталога
 	if todoDB == "" {
@@ -20,13 +22,20 @@ func FindOrCreateDB(todoDB string) error {
 		dbFile := filepath.Join(filepath.Dir(appPath), "scheduler.db")
 		_, err = os.Stat(dbFile)
 
+		fmt.Println("База тут ", dbFile)
+
 		if err != nil {
 			if err = CreateDB(dbFile); err != nil {
 				fmt.Println("Не удалось создать БД", err)
-				return err
+				return dbURL, err
 			}
 		}
+
+		dbURL = dbFile
+
+	} else {
+		dbURL = todoDB
 	}
 
-	return nil
+	return dbURL, nil
 }

@@ -8,7 +8,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var AdresDB string
+//var AdresDB string
 
 // CreateDB - создаёт БД по адресу запуска приложения
 func CreateDB(dbFile string) error {
@@ -21,7 +21,7 @@ func CreateDB(dbFile string) error {
 	}
 
 	//Открывает файл БД
-	db, err := sql.Open("sqlite", AdresDB)
+	db, err := sql.Open("sqlite", dbFile)
 	if err != nil {
 		fmt.Println("Файл БД не открывается", err)
 		return err

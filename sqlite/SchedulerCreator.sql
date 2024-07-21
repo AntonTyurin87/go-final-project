@@ -1,6 +1,6 @@
 CREATE TABLE scheduler (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  date DATE NOT NULL,
+  date VARCHAR(128) NOT NULL,
   title VARCHAR(256) NOT NULL,
   comment TEXT,
   repeat VARCHAR(128)

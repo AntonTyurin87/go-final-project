@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"go_final_project/datawork"
 )
@@ -14,17 +13,17 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 	date := r.FormValue("date")
 	repeat := r.FormValue("repeat")
 
-	nowTime, err := time.Parse("20240229", now)
+	//Проверяем корректность формата входящего времени
+	nowTime, err := datawork.DateValidation(now)
 	if err != nil {
 		fmt.Println("Ошибка конвертации входящего времени nowTime. ", err)
+	} else {
+		res, err := datawork.NextDate(nowTime, date, repeat)
+		if err != nil {
+			fmt.Println("Ошибка получения NextDate. ", err)
+		}
+		//fmt.Println("Вывод из ручки", res) //TODO Убрать
+		w.Write([]byte(res))
 	}
 
-	res, err := datawork.NextDate(nowTime, date, repeat)
-	if err != nil {
-		fmt.Println("Ошибка получения NextDate. ", err)
-	}
-
-	fmt.Fprint(w, res)
-
-	//fmt.Fprintf(w, "Время сейчас %s, дата %s, повторы %s", nowTime, date, repeat)
 }
