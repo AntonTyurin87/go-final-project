@@ -55,6 +55,8 @@ func main() {
 	r.Post("/api/task", storage.PostOneTaskHandler)
 	r.Get("/api/task", storage.GetOneTaskHandler)
 	r.Put("/api/task", storage.PutOneTaskHandler)
+	r.Post("/api/task/done", storage.DoneOneTaskHandler)
+	r.Delete("/api/task", storage.DeleteOneTaskHandler)
 
 	//Работа с группой задач
 	r.Get("/api/tasks", storage.GetTasksHandler)

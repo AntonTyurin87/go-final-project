@@ -19,6 +19,12 @@ test5:
 test6:
 		go test -run ^TestEditTask ./tests
 
+test7:
+		go test -run ^TestDone ./tests
+
+test8:
+		go test -run ^TestDelTask ./tests
+
 test:
 		go test -run ^TestApp ./tests
 		go test -run ^TestDB ./tests
@@ -26,3 +32,5 @@ test:
 		go test -run ^TestAddTask ./tests
 		go test -run ^TestTasks ./tests
 		go test -run ^TestEditTask ./tests
+		go test -run ^TestDone ./tests
+		go test -run ^TestDelTask ./tests
