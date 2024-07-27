@@ -11,14 +11,22 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-type ErrorType struct {
-	Error error `json:"error"`
+// Строковый тип для специальной ошибки
+type StringError struct {
+	StrEr string `json:"error"`
 }
 
+// Структура для ID
 type IDType struct {
 	ID int64 `json:"id"`
 }
 
+// Структура для группы записей
+type TasksType struct {
+	Tasks []datawork.TaskData `json:"tasks"`
+}
+
+// Структура для хранилища
 type Storage struct {
 	DB *sql.DB
 }
@@ -27,66 +35,223 @@ func NewStorage(db *sql.DB) Storage {
 	return Storage{DB: db}
 }
 
-// TaskHandler - обрабатывает GET, POST и DELETE запросы
-func (s *Storage) TaskHandler(w http.ResponseWriter, r *http.Request) {
-	//Забираем данные для валидации и возвращаем в виде структуры
+// GetOneTaskHandler - возвращает одну задачу по выданному признаку (по id)
+func (s *Storage) GetOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 
-	var res []byte
-	var errRes ErrorType
+	var errRes StringError
+	var err error
+	var result []byte
 
+	id := r.FormValue("id")
+
+	//Проверяем не пустой ли id
+	if id == "" {
+		errRes.StrEr = "Не указан идентификатор"
+		result, err = json.Marshal(errRes)
+		if err != nil {
+			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+		}
+	} else {
+
+		//Проверяем id
+		data, err := datawork.IDValidation(id)
+		if err != nil {
+			fmt.Println("Ошибка конвертации входящего значения api/task. ", err)
+		}
+
+		//Идём искать одну задачу по входным данным
+		result, err = s.oneTaskDataRead(data)
+		if err != nil {
+			fmt.Println("Ошибка чтения из БД ", err)
+		}
+
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Write(result)
+}
+
+// PostOneTaskHandler -  записывает в базу одну задачу
+func (s *Storage) PostOneTaskHandler(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	var errRes StringError
+	var result []byte
+
+	//Читаем сообщение
 	httpData, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("Не прочитано тело запроса api/task. ", err)
 	}
 
-	data, err := datawork.TaskDataValidation(string(httpData))
-	if err != nil {
-		fmt.Println("Ошибка конвертации входящего значения api/task. ", err)
+	//Проверяем полученную информацию о задаче
+	data, err := datawork.TaskDataValidation(httpData)
 
-		errRes.Error = err
-		res, err = json.Marshal(errRes)
+	switch {
+	//Если не смогли валедировать входящие данные
+	case err != nil:
+		fmt.Println("Ошибка конвертации входящего значения api/task. ", err)
+		errRes.StrEr = fmt.Sprint(err)
+		result, err = json.Marshal(errRes)
 		if err != nil {
 			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
 		}
-
-	} else {
-
-		switch r.Method {
-		//Идём писать в базу
-		case http.MethodPost:
-			res, err = s.TaskDataWrite(data) //sqlite.TaskDataWrite(data)
-			if err != nil {
-				fmt.Println("Ошибка записи в БД ", err)
-			}
-
-		case http.MethodGet:
-
-		case http.MethodDelete:
+	//Если заголовок пуст возвращаем ошибку
+	case data.Title == "":
+		errRes.StrEr = "Не указан заголовок задачи"
+		result, err = json.Marshal(errRes)
+		if err != nil {
+			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+		}
+	//Идём записывать задачу в базу
+	default:
+		result, err = s.oneTaskDataWrite(data)
+		if err != nil {
+			fmt.Println("Ошибка записи в БД ", err)
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Write(res)
+	w.Write(result)
 }
 
-// TaskDataWrite - Записывает в БД данные о внесённой задаче
-func (s *Storage) TaskDataWrite(data datawork.TaskData) ([]byte, error) {
+func (s *Storage) PutOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 
+	var errRes StringError
+	var result []byte
+
+	//Читаем сообщение
+	httpData, err := io.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println("Не прочитано тело запроса api/task. ", err)
+	}
+
+	//Проверяем полученную информацию о задаче
+	data, err := datawork.TaskDataValidation(httpData)
+	if err != nil {
+		fmt.Println("Ошибка конвертации входящего значения api/task. ", err)
+		errRes.StrEr = "Задача не найдена"
+		result, err = json.Marshal(errRes)
+		if err != nil {
+			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+		}
+	} else {
+
+		//Идём записывать задачу в базу
+		result, err = s.oneTaskDataUpdate(data)
+		if err != nil {
+			fmt.Println("Ошибка записи в БД ", err)
+			errRes.StrEr = "Задача не найдена"
+			result, err = json.Marshal(errRes)
+			if err != nil {
+				fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+			}
+		}
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Write(result)
+}
+
+// GetTasksHandler - возвращает группу задач
+func (s *Storage) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
+
+	var errRes StringError
+	var result []byte
+
+	search := r.FormValue("search")
+
+	result, err := s.groupTasksDataRead(search)
+	if err != nil {
+		fmt.Println("Ошибка чтения из БД ", err)
+		errRes.StrEr = fmt.Sprint(err)
+		result, err = json.Marshal(errRes)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Write(result)
+}
+
+// oneTaskDataRead - возвращает информацию об одной задаче по входным данным
+func (s *Storage) oneTaskDataRead(data datawork.TaskData) ([]byte, error) {
+
+	var errRes StringError
+	var result []byte
+	var returnData datawork.TaskData
+	var row *sql.Rows
+	var err error
+
+	//Формируем запрос в базу
+	qeryToDB := `SELECT id, date, title, comment, repeat
+								FROM scheduler
+							 WHERE id = ?;`
+
+	row, err = s.DB.Query(qeryToDB, data.ID)
+	if err != nil {
+		fmt.Println("Чтение из БД не состоялась ", err)
+		return result, err
+	}
+	defer row.Close()
+
+	//Укладываем результаты запроса в структуру
+	for row.Next() {
+		if err := row.Scan(&returnData.ID, &returnData.Date, &returnData.Title, &returnData.Comment, &returnData.Repeate); err != nil {
+			return nil, err
+		}
+		//returnData.Date, err = datawork.DateFromDB(returnData.Date)
+		if err != nil {
+			fmt.Println("Не удалось записать корректную дату из БД .", err)
+			return result, err
+		}
+	}
+
+	//Если id задачи отсутствует, то формируем сообщение об ошибке
+	if returnData.ID == "" {
+		errRes.StrEr = "Задача не найдена"
+		result, err := json.Marshal(errRes)
+		if err != nil {
+			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+		}
+		return result, err
+	}
+
+	//Формируем сообщение с информацией о задаче
+	result, err = json.Marshal(returnData)
+	if err != nil {
+		fmt.Println("Не получилось сформировать вывод в виде JSON ", err)
+		return result, err
+	}
+
+	return result, nil
+}
+
+// oneTaskDataWrite - записывает в БД данные о внесённой задаче
+func (s *Storage) oneTaskDataWrite(data datawork.TaskData) ([]byte, error) {
+
+	var err error
 	var result []byte
 	var returnData IDType
 
-	qeryToDB := fmt.Sprintf(`
-				INSERT INTO
-					scheduler (date, title, comment, repeat)
-						VALUES ("%s", "%s", "%s", "%s");`,
-		data.Date, data.Title, data.Comment, data.Repeate)
+	/*
+		// Переконвертируемформат даты для БД
+		data.Date, err = datawork.DateToDB(data.Date)
+		if err != nil {
+			fmt.Println("Не удалось получить корректную дату из БД .", err)
+			return result, err
+		}
+	*/
 
-	res, err := s.DB.Exec(qeryToDB)
+	//Формируем запрос в базу
+	qeryToDB := `INSERT INTO
+								scheduler (date, title, comment, repeat)
+							 VALUES (?, ?, ?, ?);`
+
+	res, err := s.DB.Exec(qeryToDB, data.Date, data.Title, data.Comment, data.Repeate)
 	if err != nil {
 		fmt.Println("Запись в БД не состоялась ", err)
 		return result, err
 	}
 
+	//Возвращаем id последней записи
 	id, err := res.LastInsertId()
 	if err != nil {
 		fmt.Println("ID последней записи в БД не удалось получить ", err)
@@ -95,13 +260,103 @@ func (s *Storage) TaskDataWrite(data datawork.TaskData) ([]byte, error) {
 
 	returnData.ID = id
 
+	//Формируем сообщение с информацией о задаче
 	result, err = json.Marshal(returnData)
 	if err != nil {
 		fmt.Println("Не получилось выдать ID последней записи в виде JSON ", err)
 		return result, err
 	}
 
-	//fmt.Println(string(result)) //TODO Убрать после отработки
+	return result, nil
+}
+
+// groupTasksDataRead - возвращает информацию о группе последних задач
+func (s *Storage) groupTasksDataRead(search string) ([]byte, error) {
+
+	var errRes StringError
+	var task datawork.TaskData
+	var result []byte
+	returnData := TasksType{Tasks: make([]datawork.TaskData, 0, 20)}
+
+	if search == "" {
+
+		qeryToDB := `SELECT id, date, title, comment, repeat
+									FROM scheduler
+								 ORDER BY date LIMIT 20;`
+
+		rows, err := s.DB.Query(qeryToDB)
+		if err != nil {
+			fmt.Println("Чтение из БД не состоялась ", err)
+			return result, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			if err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeate); err != nil {
+				return nil, err
+			}
+			//task.Date, err = datawork.DateFromDB(task.Date)
+			if err != nil {
+				fmt.Println("Не удалось записать корректную дату из БД .", err)
+				return result, err
+			}
+
+			returnData.Tasks = append(returnData.Tasks, task)
+		}
+	}
+
+	result, err := json.Marshal(returnData)
+	if err != nil {
+		fmt.Println("Не получилось сформировать вывод в виде JSON ", err)
+		errRes.StrEr = fmt.Sprintln(err)
+		result, err = json.Marshal(errRes)
+		if err != nil {
+			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+			return result, err
+		}
+		return result, err
+	}
 
 	return result, nil
+}
+
+func (s *Storage) oneTaskDataUpdate(data datawork.TaskData) ([]byte, error) {
+
+	var errRes StringError
+	var result []byte
+	var err error
+
+	//Формируем запрос в базу
+	qeryToDB := `UPDATE
+								scheduler SET date = ?, title = ?, comment = ?, repeat = ?
+							 WHERE id = ? ;`
+
+	res, err := s.DB.Exec(qeryToDB, data.Date, data.Title, data.Comment, data.Repeate, data.ID)
+	if err != nil {
+		fmt.Println("Запись в БД не состоялась ", err)
+		return result, err
+	}
+
+	//Возвращаем количество затронутых записей
+	num, err := res.RowsAffected()
+
+	if err != nil || num == 0 {
+		fmt.Println("ID последней записи в БД не удалось получить ", err)
+		errRes.StrEr = "Задача не найдена"
+		result, err = json.Marshal(errRes)
+		if err != nil {
+			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+			return result, err
+		}
+		return result, err
+	}
+
+	//Если ошибок не накопилось, то результат будет {}
+	result, err = json.Marshal(errRes)
+	if err != nil {
+		fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
+		return result, err
+	}
+
+	return result, err
 }

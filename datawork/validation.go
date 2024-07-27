@@ -9,6 +9,21 @@ import (
 	"time"
 )
 
+func IDValidation(id string) (TaskData, error) {
+
+	var Task TaskData
+
+	_, err := strconv.Atoi(id)
+	if err != nil {
+		fmt.Println("Id не является числом ", err)
+		return Task, err
+	}
+
+	Task.ID = id
+
+	return Task, nil
+}
+
 // DataValidation - проверка корректности переданной даты
 func DateValidation(date string) (time.Time, error) {
 
@@ -131,14 +146,14 @@ func RepeatValidation(repeat string) error {
 }
 
 type TaskData struct {
-	ID      int64  `json:"id,omitempty"`
+	ID      string `json:"id,omitempty"`
 	Date    string `json:"date,omitempty"`
-	Title   string `json:"title"`
+	Title   string `json:"title,omitempty"`
 	Comment string `json:"comment,omitempty"`
 	Repeate string `json:"repeat,omitempty"`
 }
 
-func TaskDataValidation(data string) (TaskData, error) {
+func TaskDataValidation(httpData []byte) (TaskData, error) {
 
 	var taskData TaskData
 	now := time.Now()
@@ -152,10 +167,19 @@ func TaskDataValidation(data string) (TaskData, error) {
 	}
 
 	//Проверка распаковки JSON
-	err = json.Unmarshal([]byte(data), &taskData)
+	err = json.Unmarshal(httpData, &taskData)
 	if err != nil {
 		fmt.Println("не удачно распаковался JSON запрос ", err)
 		return taskData, err
+	}
+
+	//Проверка id
+	if taskData.ID != "" {
+		_, err := IDValidation(taskData.ID)
+		if err != nil {
+			fmt.Println("не верый формат id ", err)
+			return taskData, err
+		}
 	}
 
 	//Проверка заголовка
@@ -175,10 +199,12 @@ func TaskDataValidation(data string) (TaskData, error) {
 	}
 
 	//Проверка на корректность даты
-	_, err = DateValidation(taskData.Date)
+	date, err := DateValidation(taskData.Date)
 	if err != nil {
+		fmt.Println(taskData.Date, err)
 		return taskData, err
 	}
+	taskData.Date = fmt.Sprint(date.Format("20060102"))
 
 	//Если дата меньше сегодняшей
 	//Значение переданной даты. Ошибку игнорируем по причине проверки выше.

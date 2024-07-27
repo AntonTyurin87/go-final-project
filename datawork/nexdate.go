@@ -10,8 +10,6 @@ import (
 
 func NextDate(now time.Time, date string, repeat string) (string, error) {
 
-	fmt.Println("Тут")
-
 	var nextDateString string
 	var nextDate time.Time
 
@@ -36,14 +34,12 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 	switch string(repeat[0]) {
 	case "y":
-		//fmt.Println("Тут ", date)
 		nextDate, err = yearDateToRepeate(now, date, repeat)
 		if err != nil {
 			fmt.Println("Год для повторений не корректен ", err)
 			return nextDateString, err
 		}
 	case "d":
-		//fmt.Println("Тут ", date)
 		nextDate, err = dayDateToRepeate(now, date, repeat)
 		if err != nil {
 			fmt.Println("День для повторений не корректен ", err)
@@ -69,7 +65,6 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		return nextDateString, err0
 	}
 
-	//fmt.Println("Новая дата", nextDateString) //TODO Убрать
 	nextDateString = fmt.Sprint(nextDate.Format("20060102"))
 	return nextDateString, nil
 }
