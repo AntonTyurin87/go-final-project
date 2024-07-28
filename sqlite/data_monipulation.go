@@ -129,16 +129,17 @@ func (s *Storage) PutOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Проверяем полученную информацию о задаче
 	data, err := datawork.TaskDataValidation(httpData)
-	if err != nil {
+
+	switch {
+	case err != nil:
 		fmt.Println("Ошибка конвертации входящего значения api/task. ", err)
 		errRes.StrEr = "Задача не найдена"
 		result, err = json.Marshal(errRes)
 		if err != nil {
 			fmt.Println("Не удалось упаковать ошибку в JSON. ", err)
 		}
-	} else {
-
 		//Идём записывать задачу в базу
+	default:
 		result, err = s.oneTaskDataUpdate(data)
 		if err != nil {
 			fmt.Println("Ошибка записи в БД ", err)
@@ -149,6 +150,7 @@ func (s *Storage) PutOneTaskHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write(result)
 }
@@ -253,8 +255,8 @@ func (s *Storage) oneTaskDataRead(data datawork.TaskData) ([]byte, error) {
 
 	//Формируем запрос в базу
 	qeryToDB := `SELECT id, date, title, comment, repeat
-								FROM scheduler
-							 WHERE id = ?;`
+					FROM scheduler
+				WHERE id = ?;`
 
 	row, err = s.DB.Query(qeryToDB, data.ID)
 	if err != nil {
@@ -268,7 +270,6 @@ func (s *Storage) oneTaskDataRead(data datawork.TaskData) ([]byte, error) {
 		if err := row.Scan(&returnData.ID, &returnData.Date, &returnData.Title, &returnData.Comment, &returnData.Repeate); err != nil {
 			return nil, err
 		}
-		//returnData.Date, err = datawork.DateFromDB(returnData.Date)
 		if err != nil {
 			fmt.Println("Не удалось записать корректную дату из БД .", err)
 			return result, err
@@ -304,8 +305,8 @@ func (s *Storage) oneTaskDataWrite(data datawork.TaskData) ([]byte, error) {
 
 	//Формируем запрос в базу
 	qeryToDB := `INSERT INTO
-								scheduler (date, title, comment, repeat)
-							 VALUES (?, ?, ?, ?);`
+					scheduler (date, title, comment, repeat)
+				VALUES (?, ?, ?, ?);`
 
 	res, err := s.DB.Exec(qeryToDB, data.Date, data.Title, data.Comment, data.Repeate)
 	if err != nil {
@@ -341,8 +342,8 @@ func (s *Storage) oneTaskDataUpdate(data datawork.TaskData) ([]byte, error) {
 
 	//Формируем запрос в базу
 	qeryToDB := `UPDATE
-								scheduler SET date = ?, title = ?, comment = ?, repeat = ?
-							 WHERE id = ? ;`
+					scheduler SET date = ?, title = ?, comment = ?, repeat = ?
+				WHERE id = ? ;`
 
 	res, err := s.DB.Exec(qeryToDB, data.Date, data.Title, data.Comment, data.Repeate, data.ID)
 	if err != nil {
@@ -383,8 +384,8 @@ func (s *Storage) oneTaskDataDelete(data datawork.TaskData) ([]byte, error) {
 
 	//Формируем запрос в базу
 	qeryToDB := `DELETE FROM
-								scheduler 
-							 WHERE id = ?;`
+					scheduler 
+					WHERE id = ?;`
 
 	res, err := s.DB.Exec(qeryToDB, data.ID)
 	if err != nil {
@@ -429,8 +430,8 @@ func (s *Storage) oneTaskDataDone(data datawork.TaskData) ([]byte, error) {
 
 	//Формируем запрос в базу
 	qeryToDB := `SELECT id, date, title, comment, repeat
-								FROM scheduler
-							 WHERE id = ?;`
+					FROM scheduler
+					WHERE id = ?;`
 
 	row, err = s.DB.Query(qeryToDB, data.ID)
 	if err != nil {
@@ -495,8 +496,8 @@ func (s *Storage) groupTasksDataRead(search string) ([]byte, error) {
 	if search == "" {
 
 		qeryToDB := `SELECT id, date, title, comment, repeat
-									FROM scheduler
-								 ORDER BY date LIMIT 20;`
+						FROM scheduler
+					ORDER BY date LIMIT 20;`
 
 		rows, err := s.DB.Query(qeryToDB)
 		if err != nil {

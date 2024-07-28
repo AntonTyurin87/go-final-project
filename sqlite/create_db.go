@@ -29,9 +29,9 @@ func CreateDB(dbFile string) error {
 	defer db.Close()
 
 	//Считывает текст SQL комад для создания БД.
-	textSQL, err := os.ReadFile("sqlite/SchedulerCreator.sql")
+	textSQL, err := os.ReadFile("sqlite/scheduler_creator.sql")
 	if err != nil {
-		fmt.Println("Не удалось прочитать sqlite/SchedulerCreator.sql для создания БД ", err)
+		fmt.Println("Не удалось прочитать sqlite/scheduler_creator.sql для создания БД ", err)
 		return err
 	}
 	stringSQL := string(textSQL)
