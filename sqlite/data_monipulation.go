@@ -32,6 +32,7 @@ type Storage struct {
 	DB *sql.DB
 }
 
+// NewStorage - онструктор для хранилица
 func NewStorage(db *sql.DB) Storage {
 	return Storage{DB: db}
 }
@@ -230,10 +231,11 @@ func (s *Storage) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
 
 	var errRes StringError
 	var result []byte
+	var err error
 
 	search := r.FormValue("search")
 
-	result, err := s.groupTasksDataRead(search)
+	result, err = s.groupTasksDataRead(search)
 	if err != nil {
 		fmt.Println("Ошибка чтения из БД ", err)
 		errRes.StrEr = fmt.Sprint(err)
@@ -489,38 +491,75 @@ func (s *Storage) oneTaskDataDone(data datawork.TaskData) ([]byte, error) {
 func (s *Storage) groupTasksDataRead(search string) ([]byte, error) {
 
 	var errRes StringError
+	var err error
 	var task datawork.TaskData
+	var rows *sql.Rows
+	var queryToDB, searchDate string
 	var result []byte
 	returnData := TasksType{Tasks: make([]datawork.TaskData, 0, 20)}
 
-	if search == "" {
+	if search != "" && len(search) == 10 {
+		searchDate, err = datawork.DateConvert(search)
+		if err != nil {
+			fmt.Println("На входе не дата ", err)
+		}
+	}
 
-		qeryToDB := `SELECT id, date, title, comment, repeat
+	switch {
+	//Ищем всё подряд
+	case search == "":
+		queryToDB = `SELECT id, date, title, comment, repeat
 						FROM scheduler
 					ORDER BY date LIMIT 20;`
 
-		rows, err := s.DB.Query(qeryToDB)
+		rows, err = s.DB.Query(queryToDB)
 		if err != nil {
 			fmt.Println("Чтение из БД не состоялась ", err)
 			return result, err
 		}
-		defer rows.Close()
 
-		for rows.Next() {
-			if err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeate); err != nil {
-				return nil, err
-			}
-			//task.Date, err = datawork.DateFromDB(task.Date)
-			if err != nil {
-				fmt.Println("Не удалось записать корректную дату из БД .", err)
-				return result, err
-			}
+	//Ищем по дате
+	case searchDate != "":
+		queryToDB = `SELECT id, date, title, comment, repeat
+							FROM scheduler
+							WHERE date = ?
+						ORDER BY date LIMIT 20;`
 
-			returnData.Tasks = append(returnData.Tasks, task)
+		rows, err = s.DB.Query(queryToDB, searchDate)
+		if err != nil {
+			fmt.Println("Чтение из БД не состоялась ", err)
+			return result, err
+		}
+
+	//Ищем по заголовку или комментарию
+	default:
+
+		search = fmt.Sprint("%" + search + "%")
+
+		queryToDB = `SELECT id, date, title, comment, repeat
+						FROM scheduler 
+						WHERE title LIKE ? OR comment LIKE ?
+					ORDER BY date LIMIT 20;`
+
+		rows, err = s.DB.Query(queryToDB, search, search)
+
+		if err != nil {
+			fmt.Println("Чтение из БД не состоялась ", err)
+			return result, err
 		}
 	}
+	defer rows.Close()
 
-	result, err := json.Marshal(returnData)
+	for rows.Next() {
+		if err = rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeate); err != nil {
+			fmt.Println("Запись в структуру данных из БД не состоялась ", err)
+			return result, err
+		}
+
+		returnData.Tasks = append(returnData.Tasks, task)
+	}
+
+	result, err = json.Marshal(returnData)
 	if err != nil {
 		fmt.Println("Не получилось сформировать вывод в виде JSON ", err)
 		errRes.StrEr = fmt.Sprintln(err)
@@ -531,6 +570,8 @@ func (s *Storage) groupTasksDataRead(search string) ([]byte, error) {
 		}
 		return result, err
 	}
+
+	fmt.Printf("Вход на поиск %s. Выход %s.\n", search, string(result)) //TODO
 
 	return result, nil
 }

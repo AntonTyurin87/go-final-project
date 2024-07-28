@@ -68,3 +68,14 @@ func main() {
 		fmt.Printf("Ошибка при запуске сервера: %s.\n", err.Error())
 	}
 }
+
+//TODO Составить Docker файл и проверить работоспособность в контейнере.
+//TODO Очистить main.go от лишних пометок и артефактов.
+//TODO Написать README  подробным описанием.
+//TODO * Аутентификация.
+//TODO * Выбор порта через переменную TODO_PORT.
+//TODO * Путь к базе через переменную TODO_DBFILE.
+//TODO * Цикличность по месяцам.
+//TODO * Дополнительная проверка тестами go test -run ^TestNextDate$ ./tests при значении "true" для FullNextDate.
+//TODO * Параметр search для поиска.
+//TODO * Дополнительная проверка тестами go test -run ^TestTasks$ ./tests при значении "true" для Search.

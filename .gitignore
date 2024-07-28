@@ -1,4 +1,4 @@
 .idea/
 .scheduler.db
 
-bin/
+.bin/

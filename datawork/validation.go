@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// IDValidation - проверка id на числовое значение
 func IDValidation(id string) (TaskData, error) {
 
 	var Task TaskData
