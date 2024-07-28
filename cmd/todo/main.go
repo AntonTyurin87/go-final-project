@@ -46,7 +46,7 @@ func main() {
 	r := chi.NewRouter()
 
 	//Запускаем Web интерфейс
-	r.Handle("/", http.FileServer(http.Dir("./web")))
+	r.Handle("/*", http.FileServer(http.Dir("./web")))
 
 	//Выводим значение новой даты
 	r.Get("/api/nextdate", handlers.GetNextDateHandler)

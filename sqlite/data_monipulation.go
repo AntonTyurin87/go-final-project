@@ -571,7 +571,5 @@ func (s *Storage) groupTasksDataRead(search string) ([]byte, error) {
 		return result, err
 	}
 
-	fmt.Printf("Вход на поиск %s. Выход %s.\n", search, string(result)) //TODO
-
 	return result, nil
 }
