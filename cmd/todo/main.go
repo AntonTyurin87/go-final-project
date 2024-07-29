@@ -77,5 +77,3 @@ func main() {
 //TODO * Путь к базе через переменную TODO_DBFILE.
 //TODO * Цикличность по месяцам.
 //TODO * Дополнительная проверка тестами go test -run ^TestNextDate$ ./tests при значении "true" для FullNextDate.
-//TODO * Параметр search для поиска.
-//TODO * Дополнительная проверка тестами go test -run ^TestTasks$ ./tests при значении "true" для Search.
