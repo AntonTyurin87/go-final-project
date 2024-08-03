@@ -21,11 +21,6 @@ func main() {
 		port = ":7540"
 	}
 
-	//TODO Поменять или убрать после отладки
-	if todoDB == "" {
-		todoDB = "/home/anton/go_final_project/scheduler.db" // /home/anton/go_final_project/scheduler.db
-	}
-
 	//Проверить существует ли файл БД. Если его нет, то создать БД.
 	dbURL, err := sqlite.FindOrCreateDB(todoDB)
 	if err != nil {
@@ -37,8 +32,6 @@ func main() {
 	if err != nil {
 		fmt.Println("Ошибка инициализации БД ", err)
 	}
-
-	fmt.Println(dbURL) //TODO Убрать после отработки
 
 	storage := sqlite.NewStorage(db)
 
@@ -71,9 +64,6 @@ func main() {
 
 //TODO Составить Docker файл и проверить работоспособность в контейнере.
 //TODO Очистить main.go от лишних пометок и артефактов.
-//TODO Написать README  подробным описанием.
 //TODO * Аутентификация.
-//TODO * Выбор порта через переменную TODO_PORT.
-//TODO * Путь к базе через переменную TODO_DBFILE.
 //TODO * Цикличность по месяцам.
 //TODO * Дополнительная проверка тестами go test -run ^TestNextDate$ ./tests при значении "true" для FullNextDate.

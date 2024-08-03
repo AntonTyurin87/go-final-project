@@ -1,5 +1,29 @@
 run:
-		go run cmd/todo/main.go
+		GOOS=linux GOARCH=amd64 go run cmd/todo/main.go
+
+build_win64:
+		rm -rf OS_bin/TODO_win64/sqlite
+		rm -rf OS_bin/TODO_win64/web
+		mkdir OS_bin/TODO_win64/sqlite
+		cp sqlite/scheduler_creator.sql OS_bin/TODO_win64/sqlite
+		cp -r ./web ./OS_bin/TODO_win64/
+		GOOS=windows GOARCH=amd64 TODO_DBFILE="" go build -o OS_bin/TODO_win64/TODO_windows64.exe cmd/todo/main.go
+
+build_lin64:
+		rm -rf OS_bin/TODO_lin64/sqlite
+		rm -rf OS_bin/TODO_lin64/web
+		mkdir OS_bin/TODO_lin64/sqlite
+		cp sqlite/scheduler_creator.sql OS_bin/TODO_lin64/sqlite
+		cp -r ./web ./OS_bin/TODO_lin64/
+		GOOS=linux GOARCH=amd64 TODO_DBFILE="" go build -o OS_bin/TODO_lin64/TODO_linux cmd/todo/main.go
+
+build_mac64:
+		rm -rf OS_bin/TODO_mac64/sqlite
+		rm -rf OS_bin/TODO_mac64/web
+		mkdir OS_bin/TODO_mac64/sqlite
+		cp sqlite/scheduler_creator.sql OS_bin/TODO_mac64/sqlite
+		cp -r ./web ./OS_bin/TODO_mac64/
+		GOOS=darwin GOARCH=arm64 TODO_DBFILE="" go build -o OS_bin/TODO_mac64/TODO_mac cmd/todo/main.go
 
 test1:
 		go test -run ^TestApp ./tests

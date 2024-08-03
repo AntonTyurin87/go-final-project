@@ -24,11 +24,9 @@ func FindOrCreateDB(todoDB string) (string, error) {
 
 		fmt.Println("База тут ", dbFile)
 
-		if err != nil {
-			if err = CreateDB(dbFile); err != nil {
-				fmt.Println("Не удалось создать БД", err)
-				return dbURL, err
-			}
+		if err = CreateDB(dbFile); err != nil {
+			fmt.Println("Не удалось создать БД", err)
+			return dbURL, err
 		}
 
 		dbURL = dbFile
