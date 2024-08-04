@@ -58,3 +58,17 @@ test:
 		go test -run ^TestEditTask ./tests
 		go test -run ^TestDone ./tests
 		go test -run ^TestDelTask ./tests
+
+#Команды не запускаются из makefile по причине наличия $
+#stop:
+#		docker stop $(docker ps -a -q)
+
+#s_r:
+#		docker rm $(docker ps -a -q)
+
+docker_build:
+		docker build --tag todorun:v1 .
+
+docker_run:
+		docker run -d -p 7540:7540 todorun:v1
+
